@@ -1,0 +1,98 @@
+// 1. Configuración del "script de construcción": de dónde se descarga el plugin de Serenity
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("net.serenity-bdd:serenity-gradle-plugin:2.0.80")
+    }
+}
+
+// 2. Plugins: compilar Java y generar el reporte agregado de Serenity
+apply plugin: 'java-library'
+apply plugin: 'net.serenity-bdd.aggregator'
+
+// 3. Repositorios de donde se descargan las librerías del proyecto
+//    (jcenter() se retiró porque ese repositorio fue cerrado)
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+// 4. Versión de Java del código
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// 5. Dependencias (librerías)
+dependencies {
+    implementation 'net.serenity-bdd:serenity-core:2.0.80'
+    implementation 'net.serenity-bdd:serenity-junit:2.0.80'
+    implementation 'net.serenity-bdd:serenity-cucumber:1.9.45'
+
+    // Patrón Screenplay
+    implementation 'net.serenity-bdd:serenity-screenplay:2.0.80'
+    implementation 'net.serenity-bdd:serenity-screenplay-webdriver:2.0.80'
+
+    implementation 'org.slf4j:slf4j-simple:1.7.7'
+    implementation 'com.google.guava:guava:23.0'
+    implementation 'org.apache.poi:poi:3.17'
+    implementation 'org.apache.poi:poi-ooxml:3.17'
+}
+
+// 6. Configuración de la tarea de pruebas
+test {
+    // Pasa las propiedades -D de la consola a las pruebas (tags, navegador, etc.)
+    systemProperties System.getProperties()
+    // No detiene el build si una prueba falla (para que siempre se genere el reporte)
+    ignoreFailures = true
+    // Muestra en consola lo que imprimen las pruebas
+    testLogging.showStandardStreams = true
+}
+
+// Serenity 2.0.80 no le pasa a Selenium la ruta de msedgedriver que está en serenity.properties,
+// así que se envía como propiedad del sistema a todas las tareas de pruebas
+tasks.withType(Test) {
+    systemProperty 'webdriver.edge.driver', file('driver/msedgedriver.exe').absolutePath
+}
+
+// 7. Genera el reporte de Serenity automáticamente después de las pruebas
+test.finalizedBy(aggregate)
+
+// 8. [CP-07] Ejecución multinavegador: crea las tareas testChrome, testEdge y testFirefox.
+//    Cada una corre los escenarios @multinavegador con su navegador, y la propiedad "context"
+//    hace que el reporte muestre los resultados de cada navegador por separado.
+//    Uso: .\gradlew.bat clean multinavegador
+def navegadores = ['chrome', 'edge', 'firefox']
+navegadores.each { navegador ->
+    task "test${navegador.capitalize()}"(type: Test) {
+        group = 'multinavegador'
+        description = "Ejecuta los escenarios @multinavegador en ${navegador}"
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        systemProperties System.getProperties()
+        systemProperty 'webdriver.driver', navegador
+        systemProperty 'context', navegador
+        systemProperty 'cucumber.options', '--tags @multinavegador'
+        ignoreFailures = true
+        testLogging.showStandardStreams = true
+        // Siempre ejecuta (Gradle no la salta aunque el código no haya cambiado)
+        outputs.upToDateWhen { false }
+    }
+}
+// Orden fijo: Chrome -> Edge -> Firefox (uno a la vez)
+testEdge.mustRunAfter testChrome
+testFirefox.mustRunAfter testEdge
+
+task multinavegador {
+    group = 'multinavegador'
+    description = 'Ejecuta los escenarios @multinavegador en Chrome, Edge y Firefox y genera un solo reporte'
+    dependsOn navegadores.collect { "test${it.capitalize()}" }
+    finalizedBy aggregate
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+gradle.startParameter.continueOnFailure = true

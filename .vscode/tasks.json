@@ -1,0 +1,95 @@
+{
+    // Atajos para ejecutar las pruebas desde VS Code sin escribir comandos
+    // (equivalente a los "scripts" de package.json en un proyecto npm / Playwright).
+    // Uso: Ctrl+Shift+P -> "Tasks: Run Task" -> elegir una tarea.
+    "version": "2.0.0",
+    "options": {
+        "shell": {
+            "executable": "powershell.exe",
+            "args": ["-NoProfile", "-Command"]
+        }
+    },
+    "tasks": [
+        {
+            "label": "Pruebas: todas (CP-01 a CP-06)",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean test",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Pruebas: smoke",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean test \"-Dcucumber.options=--tags @smoke\"",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Pruebas: regresion",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean test \"-Dcucumber.options=--tags @regresion\"",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Pruebas: un escenario (elegir CP)",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean test \"-Dcucumber.options=--tags @${input:casoDePrueba}\"",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Pruebas: por tag (escribir expresion)",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean test \"-Dcucumber.options=--tags '${input:expresionDeTags}'\"",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Pruebas: todas en otro navegador",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean test \"-Dwebdriver.driver=${input:navegador}\"",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Pruebas: multinavegador (CP-07)",
+            "type": "shell",
+            "command": ".\\gradlew.bat clean multinavegador",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Reporte: regenerar",
+            "type": "shell",
+            "command": ".\\gradlew.bat aggregate",
+            "problemMatcher": []
+        },
+        {
+            "label": "Reporte: abrir en el navegador",
+            "type": "shell",
+            "command": "Start-Process target\\site\\serenity\\index.html",
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "casoDePrueba",
+            "type": "pickString",
+            "description": "¿Qué caso de prueba quieres ejecutar?",
+            "options": ["CP-01", "CP-02", "CP-03", "CP-04", "CP-05", "CP-06"]
+        },
+        {
+            "id": "expresionDeTags",
+            "type": "promptString",
+            "description": "Expresión de tags (ej: @smoke, @CP-01 or @CP-05, @regresion and not @CP-06)",
+            "default": "@smoke"
+        },
+        {
+            "id": "navegador",
+            "type": "pickString",
+            "description": "¿En qué navegador?",
+            "options": ["chrome", "edge", "firefox"]
+        }
+    ]
+}
