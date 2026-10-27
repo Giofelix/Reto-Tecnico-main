@@ -45,8 +45,8 @@ Las rutas se configuran en `serenity.properties`.
 ## Instalación
 
 ```powershell
-git clone <url-del-repositorio>
-cd <carpeta-del-proyecto>
+git clone https://github.com/Giofelix/Reto-Tecnico-main.git
+cd Reto-Tecnico-main
 .\gradlew.bat clean build -x test
 ```
 
